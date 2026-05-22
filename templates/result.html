@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analysis Result — EmailGuard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script>
+  (function(){
+    const saved = localStorage.getItem("theme") || "dark";
+    document.documentElement.setAttribute("data-theme", saved);
+  })();
+  </script>
+  <style>
+  .conf-tier { display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:700; letter-spacing:0.08em; padding:3px 9px; border-radius:4px; margin-left:10px; vertical-align:middle; }
+  .tier-high   { background:rgba(16,217,138,0.12); color:#10d98a; border:1px solid rgba(16,217,138,0.3); }
+  .tier-medium { background:rgba(245,158,11,0.12);  color:#f59e0b; border:1px solid rgba(245,158,11,0.3); }
+  .tier-low    { background:rgba(148,163,184,0.12); color:#94a3b8; border:1px solid rgba(148,163,184,0.3); }
+  </style>
+</head>
+<body>
+<nav class="navbar">
+  <a class="nav-brand" href="/">
+    <span class="nav-logo">🛡</span>
+    <span class="nav-name">Email<span>Guard</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/">Analyze</a></li>
+    <li><a href="/dashboard">Dashboard</a></li>
+    <li><a href="/history">History</a></li>
+    <li><a href="/evaluation">Evaluation</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="nav-user">&#128100; {{ current_user.username }}</span>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
+      <div class="theme-toggle-thumb"><span id="themeIcon">&#9790;</span></div>
+    </button>
+    <a href="{{ url_for('logout') }}" class="nav-logout">Logout</a>
+  </div>
+</nav>
+<script>
+function toggleTheme(){
+  const html=document.documentElement;
+  const next=html.getAttribute("data-theme")==="dark"?"light":"dark";
+  html.setAttribute("data-theme",next);
+  localStorage.setItem("theme",next);
+  document.getElementById("themeIcon").textContent=next==="dark"?"\u263E":"\u2600";
+}
+(function(){
+  const t=localStorage.getItem("theme")||"dark";
+  document.documentElement.setAttribute("data-theme",t);
+  const ic=document.getElementById("themeIcon");
+  if(ic) ic.textContent=t==="dark"?"\u263E":"\u2600";
+})();
+</script>
+
+<div class="page page-sm">
+  <div class="page-header">
+    <h1>Analysis Result</h1>
+    <p>Hybrid ML + rule-based detection complete.</p>
+  </div>
+
+  <!-- Result Hero -->
+  {% if result.label == "Safe" %}
+  <div class="result-hero hero-safe">
+  {% elif result.label == "Suspicious" %}
+  <div class="result-hero hero-suspicious">
+  {% else %}
+  <div class="result-hero hero-phishing">
+  {% endif %}
+    <div class="hero-left">
+      <span class="hero-label">Final Classification</span>
+      {% if result.label == "Safe" %}
+        <span class="badge badge-safe hero-badge">✓ {{ result.label }}</span>
+      {% elif result.label == "Suspicious" %}
+        <span class="badge badge-suspicious hero-badge">⚠ {{ result.label }}</span>
+      {% else %}
+        <span class="badge badge-phishing hero-badge">✕ {{ result.label }}</span>
+      {% endif %}
+      <span class="hero-urls">{{ result.urls_detected }} URL(s) detected</span>
+    </div>
+    <div class="hero-right">
+      <div class="hero-pct">{{ result.confidence }}%</div>
+      <div class="hero-pct-label">Confidence</div>
+      {% if result.confidence >= 90 %}
+        <span class="conf-tier tier-high">● HIGH CERTAINTY</span>
+      {% elif result.confidence >= 75 %}
+        <span class="conf-tier tier-medium">● MODERATE CERTAINTY</span>
+      {% else %}
+        <span class="conf-tier tier-low">● LOW CERTAINTY</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Email Information -->
+  <div class="card">
+    <div class="card-title">Email Information</div>
+    <div class="data-row"><span class="data-key">From</span><span class="data-val">{{ sender }}</span></div>
+    <div class="data-row"><span class="data-key">To</span><span class="data-val">{{ receiver }}</span></div>
+    <div class="data-row"><span class="data-key">Subject</span><span class="data-val">{{ subject }}</span></div>
+    <div class="data-row" style="flex-direction:column;">
+      <span class="data-key">Body</span>
+      <div class="email-body-box">{{ body }}</div>
+    </div>
+  </div>
+
+  <!-- ML vs Rules -->
+  <div class="card">
+    <div class="card-title">Model vs Rule-Based Analysis</div>
+    <div class="data-row">
+      <span class="data-key">ML Prediction</span>
+      <span class="data-val">
+        {% if result.ml_label == "Safe" %}
+          <span class="badge badge-safe">{{ result.ml_label }}</span>
+        {% else %}
+          <span class="badge badge-phishing">{{ result.ml_label }}</span>
+        {% endif %}
+      </span>
+    </div>
+    <div class="data-row">
+      <span class="data-key">ML Confidence</span>
+      <span class="data-val" style="font-family:var(--fm);">{{ result.ml_confidence }}%</span>
+    </div>
+    <div class="data-row">
+      <span class="data-key">Phishing Score</span>
+      <span class="data-val"><span class="score-highlight">{{ result.phishing_score }}</span></span>
+    </div>
+  </div>
+
+  <!-- VirusTotal -->
+  <div class="card">
+    <div class="card-title">VirusTotal URL Reputation</div>
+    <div class="vt-status"><strong>Status:</strong> {{ result.vt_summary.status }}</div>
+    {% if result.vt_summary.results %}
+      {% for item in result.vt_summary.results %}
+      <div class="vt-card">
+        <span style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);font-weight:700;">Scanned URL</span>
+        <code>{{ item.url }}</code>
+        <div class="vt-grid">
+          <div class="vt-cell"><strong>Malicious</strong><span style="color:var(--red);">{{ item.malicious }}</span></div>
+          <div class="vt-cell"><strong>Suspicious</strong><span style="color:var(--amber);">{{ item.suspicious }}</span></div>
+          <div class="vt-cell"><strong>Harmless</strong><span style="color:var(--green);">{{ item.harmless }}</span></div>
+          <div class="vt-cell"><strong>Undetected</strong><span>{{ item.undetected }}</span></div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="color:var(--text-3);font-size:13px;">No URLs to scan.</p>
+    {% endif %}
+  </div>
+
+  <!-- Detection Reasons -->
+  <div class="card">
+    <div class="card-title">Detection Reasons</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:10px 14px;background:var(--bg-input);border:1px solid var(--border-hi);border-radius:var(--r);">
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-3);">Phishing Score</span>
+      {% if result.phishing_score >= 25 %}
+        <span style="font-family:var(--fm);font-size:1.6rem;font-weight:600;color:var(--red);">{{ result.phishing_score }}</span>
+        <span style="font-size:11px;font-weight:600;color:var(--red);background:var(--red-dim);border:1px solid rgba(244,63,94,0.3);padding:2px 8px;border-radius:4px;">CRITICAL</span>
+      {% elif result.phishing_score >= 12 %}
+        <span style="font-family:var(--fm);font-size:1.6rem;font-weight:600;color:var(--red);">{{ result.phishing_score }}</span>
+        <span style="font-size:11px;font-weight:600;color:var(--red);background:var(--red-dim);border:1px solid rgba(244,63,94,0.3);padding:2px 8px;border-radius:4px;">HIGH</span>
+      {% elif result.phishing_score >= 6 %}
+        <span style="font-family:var(--fm);font-size:1.6rem;font-weight:600;color:var(--amber);">{{ result.phishing_score }}</span>
+        <span style="font-size:11px;font-weight:600;color:var(--amber);background:var(--amber-dim);border:1px solid rgba(245,158,11,0.3);padding:2px 8px;border-radius:4px;">MEDIUM</span>
+      {% else %}
+        <span style="font-family:var(--fm);font-size:1.6rem;font-weight:600;color:var(--green);">{{ result.phishing_score }}</span>
+        <span style="font-size:11px;font-weight:600;color:var(--green);background:var(--green-dim);border:1px solid rgba(16,217,138,0.3);padding:2px 8px;border-radius:4px;">LOW</span>
+      {% endif %}
+    </div>
+    {% if result.reasons %}
+      <ul class="reason-list">
+        {% for r in result.reasons %}
+          {% if '||' in r %}
+            {% set parts = r.split('||') %}
+            <li style="display:flex;align-items:center;justify-content:space-between;">
+              <span>{{ parts[0] }}</span>
+              <span style="font-family:var(--fm);font-size:12px;font-weight:600;color:var(--red);background:var(--red-dim);border:1px solid rgba(244,63,94,0.25);padding:2px 8px;border-radius:4px;flex-shrink:0;margin-left:12px;">+{{ parts[1] }}</span>
+            </li>
+          {% else %}
+            <li>{{ r }}</li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p style="color:var(--text-3);font-size:13px;">No suspicious indicators found.</p>
+    {% endif %}
+  </div>
+
+  <!-- Extracted URLs -->
+  <div class="card">
+    <div class="card-title">Extracted URLs</div>
+    {% if result.url_list %}
+      <ul class="url-list">
+        {% for url in result.url_list %}<li><code>{{ url }}</code></li>{% endfor %}
+      </ul>
+    {% else %}
+      <p style="color:var(--text-3);font-size:13px;">No URLs found.</p>
+    {% endif %}
+  </div>
+
+  <a href="/" class="btn btn-ghost" style="display:inline-flex;width:auto;margin-top:.5rem;">← Analyze Another</a>
+</div>
+</body>
+</html>

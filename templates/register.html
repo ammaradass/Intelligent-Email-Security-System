@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register — EmailGuard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body {
+      background-image:
+        linear-gradient(rgba(14,165,233,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(14,165,233,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .auth-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .auth-outer {
+      width: 100%;
+      max-width: 460px;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    /* ── Logo bar ── */
+    .auth-brand {
+      display: flex; align-items: center; justify-content: center;
+      gap: 10px; margin-bottom: 2rem;
+    }
+    .auth-brand-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: linear-gradient(135deg, rgba(14,165,233,0.25), rgba(14,165,233,0.05));
+      border: 1px solid rgba(14,165,233,0.45);
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+      box-shadow: 0 0 20px rgba(14,165,233,0.2);
+    }
+    .auth-brand-name { font-size: 20px; font-weight: 800; color: var(--text); letter-spacing: -0.01em; }
+    .auth-brand-name span { color: var(--blue); }
+
+    /* ── Card ── */
+    .auth-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-hi);
+      border-radius: 18px;
+      padding: 2.4rem 2.2rem;
+      position: relative; overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(14,165,233,0.05);
+    }
+    .auth-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent 0%, var(--blue) 50%, transparent 100%);
+    }
+    .auth-card::after {
+      content: '';
+      position: absolute; top: -80px; right: -80px;
+      width: 200px; height: 200px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(14,165,233,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── Header ── */
+    .auth-head { margin-bottom: 1.8rem; }
+    .auth-title {
+      font-size: 1.5rem; font-weight: 800; letter-spacing: -0.025em;
+      color: var(--text); line-height: 1.2;
+    }
+    .auth-subtitle { font-size: 13.5px; color: var(--text-2); margin-top: 5px; }
+
+    /* ── Step indicator ── */
+    .auth-steps {
+      display: flex; align-items: center; gap: 6px;
+      margin-bottom: 1.6rem;
+    }
+    .step-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--border-hi);
+    }
+    .step-dot.active { background: var(--blue); box-shadow: 0 0 6px var(--blue); }
+    .step-line { flex: 1; height: 1px; background: var(--border-hi); }
+    .step-label { font-size: 11px; color: var(--text-3); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+
+    /* ── Error ── */
+    .auth-error {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: rgba(244,63,94,0.07);
+      border: 1px solid rgba(244,63,94,0.25);
+      border-left: 3px solid var(--red);
+      border-radius: var(--r); padding: 11px 14px;
+      font-size: 13.5px; color: var(--red); margin-bottom: 1.4rem;
+    }
+    .auth-error-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Input groups ── */
+    .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+    .form-group { margin-bottom: 1rem; position: relative; }
+    .form-full { grid-column: 1 / -1; }
+
+    label {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.09em; color: var(--text-2); margin-bottom: 6px;
+    }
+    .label-required {
+      color: var(--red); font-size: 14px; line-height: 1;
+    }
+
+    .input-wrap { position: relative; }
+    .input-icon {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      font-size: 14px; pointer-events: none; opacity: 0.5;
+    }
+    .input-wrap input {
+      padding-left: 36px;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+      width: 100%; background: var(--bg-input);
+      border: 1px solid var(--border-hi); border-radius: var(--r);
+      color: var(--text); font-family: var(--ff); font-size: 14px;
+      padding: 10px 13px; transition: all 0.2s; outline: none;
+    }
+    input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
+    }
+    input::placeholder { color: var(--text-3); }
+
+    /* Password strength bar */
+    .strength-wrap { margin-top: 7px; }
+    .strength-bar {
+      height: 3px; border-radius: 2px;
+      background: var(--border-hi); overflow: hidden;
+    }
+    .strength-fill {
+      height: 100%; border-radius: 2px; width: 0%;
+      transition: width 0.3s, background 0.3s;
+    }
+    .strength-text { font-size: 11px; color: var(--text-3); margin-top: 4px; }
+
+    /* Hint */
+    .hint {
+      font-size: 11.5px; color: var(--text-3); margin-top: 5px;
+      display: flex; align-items: flex-start; gap: 5px; line-height: 1.4;
+    }
+    .hint::before { content: '·'; flex-shrink: 0; }
+
+    /* Password match indicator */
+    .match-indicator {
+      font-size: 11.5px; margin-top: 5px;
+      display: flex; align-items: center; gap: 5px;
+    }
+
+    /* ── Rules checklist ── */
+    .rules-box {
+      background: rgba(14,165,233,0.04); border: 1px solid rgba(14,165,233,0.1);
+      border-radius: var(--r); padding: 12px 14px; margin-bottom: 1.2rem;
+    }
+    .rules-title { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); margin-bottom: 8px; }
+    .rule {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12.5px; color: var(--text-3); padding: 3px 0;
+      transition: color 0.2s;
+    }
+    .rule-dot {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 1.5px solid var(--border-hi); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; transition: all 0.2s;
+    }
+    .rule.pass { color: var(--green); }
+    .rule.pass .rule-dot { background: var(--green); border-color: var(--green); color: #050810; }
+
+    /* ── Submit button ── */
+    .btn-register {
+      width: 100%; padding: 12px;
+      background: var(--blue); color: #050810;
+      border: none; border-radius: var(--r); cursor: pointer;
+      font-family: var(--ff); font-size: 14.5px; font-weight: 800;
+      letter-spacing: 0.02em; margin-top: 0.6rem;
+      transition: all 0.2s;
+      box-shadow: 0 4px 14px rgba(14,165,233,0.3);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-register:hover {
+      background: #38bdf8;
+      box-shadow: 0 6px 20px rgba(14,165,233,0.45);
+      transform: translateY(-1px);
+    }
+    .btn-register:active { transform: translateY(0); }
+
+    /* ── Footer ── */
+    .auth-footer {
+      margin-top: 1.4rem; text-align: center;
+      font-size: 13.5px; color: var(--text-2);
+      padding-top: 1.2rem; border-top: 1px solid var(--border);
+    }
+    .auth-footer a { color: var(--blue); text-decoration: none; font-weight: 700; }
+    .auth-footer a:hover { text-decoration: underline; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-outer">
+
+    <!-- Brand -->
+    <div class="auth-brand">
+      <span class="auth-brand-icon">🛡</span>
+      <span class="auth-brand-name">Email<span>Guard</span></span>
+    </div>
+
+    <div class="auth-card">
+
+      <!-- Header -->
+      <div class="auth-head">
+        <div class="auth-title">Create your account</div>
+        <div class="auth-subtitle">Join EmailGuard to start detecting phishing and spam emails.</div>
+      </div>
+
+      <!-- Error -->
+      {% if error %}
+      <div class="auth-error">
+        <span class="auth-error-icon">⚠</span>
+        <span>{{ error }}</span>
+      </div>
+      {% endif %}
+
+      <form method="POST" id="regForm">
+
+        <!-- Row: username + email -->
+        <div class="input-row">
+          <div class="form-group">
+            <label for="username">Username <span class="label-required">*</span></label>
+            <div class="input-wrap">
+              <span class="input-icon">👤</span>
+              <input type="text" id="username" name="username" placeholder="your_username" required minlength="3" autofocus>
+            </div>
+            <div class="hint">Minimum 3 characters</div>
+          </div>
+          <div class="form-group">
+            <label for="email">Email <span class="label-required">*</span></label>
+            <div class="input-wrap">
+              <span class="input-icon">✉</span>
+              <input type="email" id="email" name="email" placeholder="you@example.com" required>
+            </div>
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="form-group form-full">
+          <label for="password">Password <span class="label-required">*</span></label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="password" name="password" placeholder="Create a strong password" required minlength="8" oninput="checkStrength(this.value)">
+          </div>
+          <div class="strength-wrap">
+            <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+            <div class="strength-text" id="strengthText">Enter a password</div>
+          </div>
+        </div>
+
+        <!-- Rules checklist -->
+        <div class="rules-box">
+          <div class="rules-title">Password Requirements</div>
+          <div class="rule" id="rule-len">
+            <div class="rule-dot" id="dot-len">✓</div>
+            At least 8 characters
+          </div>
+          <div class="rule" id="rule-sym">
+            <div class="rule-dot" id="dot-sym">✓</div>
+            At least one special character (e.g. @, #, !, $, %)
+          </div>
+          <div class="rule" id="rule-num">
+            <div class="rule-dot" id="dot-num">✓</div>
+            At least one number
+          </div>
+        </div>
+
+        <!-- Confirm password -->
+        <div class="form-group form-full">
+          <label for="confirm">Confirm Password <span class="label-required">*</span></label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="confirm" name="confirm" placeholder="Repeat your password" required oninput="checkMatch()">
+          </div>
+          <div class="match-indicator" id="matchIndicator"></div>
+        </div>
+
+        <button type="submit" class="btn-register">
+          Create Account →
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        Already have an account? <a href="{{ url_for('login') }}">Sign in here</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function checkStrength(val) {
+  const fill = document.getElementById('strengthFill');
+  const text = document.getElementById('strengthText');
+
+  const hasLen = val.length >= 8;
+  const hasSym = /[!@#$%^&*()_+\-=\[\]{};:'",.<>?\/\\|`~]/.test(val);
+  const hasNum = /\d/.test(val);
+  const hasUpper = /[A-Z]/.test(val);
+
+  // Update rules
+  toggleRule('rule-len', 'dot-len', hasLen);
+  toggleRule('rule-sym', 'dot-sym', hasSym);
+  toggleRule('rule-num', 'dot-num', hasNum);
+
+  // Score
+  let score = 0;
+  if (hasLen)   score++;
+  if (hasSym)   score++;
+  if (hasNum)   score++;
+  if (hasUpper) score++;
+  if (val.length >= 12) score++;
+
+  const levels = [
+    { pct: '0%',   color: 'var(--border-hi)', label: 'Enter a password' },
+    { pct: '25%',  color: 'var(--red)',        label: 'Weak' },
+    { pct: '50%',  color: 'var(--amber)',       label: 'Fair' },
+    { pct: '75%',  color: 'var(--blue)',        label: 'Good' },
+    { pct: '90%',  color: 'var(--green)',       label: 'Strong' },
+    { pct: '100%', color: 'var(--green)',       label: 'Very Strong' },
+  ];
+
+  const lvl = val.length === 0 ? levels[0] : levels[Math.min(score, 5)];
+  fill.style.width     = lvl.pct;
+  fill.style.background = lvl.color;
+  text.textContent     = lvl.label;
+  text.style.color     = lvl.color;
+
+  checkMatch();
+}
+
+function toggleRule(ruleId, dotId, pass) {
+  const rule = document.getElementById(ruleId);
+  const dot  = document.getElementById(dotId);
+  if (pass) {
+    rule.classList.add('pass');
+    dot.textContent = '✓';
+  } else {
+    rule.classList.remove('pass');
+    dot.textContent = '';
+  }
+}
+
+function checkMatch() {
+  const pw  = document.getElementById('password').value;
+  const cfm = document.getElementById('confirm').value;
+  const ind = document.getElementById('matchIndicator');
+  if (!cfm) { ind.innerHTML = ''; return; }
+  if (pw === cfm) {
+    ind.innerHTML = '<span style="color:var(--green);">✓ Passwords match</span>';
+  } else {
+    ind.innerHTML = '<span style="color:var(--red);">✕ Passwords do not match</span>';
+  }
+}
+</script>
+</body>
+</html>

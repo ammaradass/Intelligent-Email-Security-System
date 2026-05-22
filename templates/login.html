@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — EmailGuard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body {
+      background-image:
+        linear-gradient(rgba(14,165,233,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(14,165,233,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .auth-wrap {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 2rem;
+    }
+
+    .auth-outer {
+      width: 100%; max-width: 420px;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    /* ── Brand ── */
+    .auth-brand {
+      display: flex; align-items: center; justify-content: center;
+      gap: 10px; margin-bottom: 2rem;
+    }
+    .auth-brand-icon {
+      width: 42px; height: 42px; border-radius: 12px;
+      background: linear-gradient(135deg, rgba(14,165,233,0.25), rgba(14,165,233,0.05));
+      border: 1px solid rgba(14,165,233,0.45);
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+      box-shadow: 0 0 24px rgba(14,165,233,0.2);
+    }
+    .auth-brand-name { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.01em; }
+    .auth-brand-name span { color: var(--blue); }
+
+    /* ── Card ── */
+    .auth-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-hi);
+      border-radius: 18px;
+      padding: 2.5rem 2.2rem;
+      position: relative; overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(14,165,233,0.05);
+    }
+    .auth-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent 0%, var(--blue) 50%, transparent 100%);
+    }
+    .auth-card::after {
+      content: '';
+      position: absolute; top: -80px; right: -80px;
+      width: 200px; height: 200px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(14,165,233,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── Header ── */
+    .auth-title {
+      font-size: 1.6rem; font-weight: 800; letter-spacing: -0.025em;
+      color: var(--text); margin-bottom: 5px;
+    }
+    .auth-subtitle { font-size: 13.5px; color: var(--text-2); margin-bottom: 1.8rem; }
+
+    /* ── Error ── */
+    .auth-error {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: rgba(244,63,94,0.07);
+      border: 1px solid rgba(244,63,94,0.25);
+      border-left: 3px solid var(--red);
+      border-radius: var(--r); padding: 11px 14px;
+      font-size: 13.5px; color: var(--red); margin-bottom: 1.4rem;
+    }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 1.1rem; }
+
+    label {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.09em; color: var(--text-2); margin-bottom: 6px;
+    }
+
+    .input-wrap { position: relative; }
+    .input-icon {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      font-size: 14px; pointer-events: none; opacity: 0.45;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%; background: var(--bg-input);
+      border: 1px solid var(--border-hi); border-radius: var(--r);
+      color: var(--text); font-family: var(--ff); font-size: 14px;
+      padding: 11px 40px 11px 38px;
+      transition: all 0.2s; outline: none;
+    }
+    input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
+    }
+    input::placeholder { color: var(--text-3); }
+
+    /* Show/hide password toggle */
+    .toggle-pw {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      font-size: 15px; opacity: 0.4; transition: opacity 0.2s; padding: 0;
+      line-height: 1;
+    }
+    .toggle-pw:hover { opacity: 0.8; }
+
+    /* ── Remember row ── */
+    .remember-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1.4rem;
+    }
+    .remember-left {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--text-2); cursor: pointer;
+    }
+    .remember-left input[type="checkbox"] {
+      width: 15px; height: 15px; accent-color: var(--blue); cursor: pointer;
+    }
+
+    /* ── Submit ── */
+    .btn-login {
+      width: 100%; padding: 12px;
+      background: var(--blue); color: #050810;
+      border: none; border-radius: var(--r); cursor: pointer;
+      font-family: var(--ff); font-size: 14.5px; font-weight: 800;
+      letter-spacing: 0.02em;
+      transition: all 0.2s;
+      box-shadow: 0 4px 14px rgba(14,165,233,0.3);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-login:hover {
+      background: #38bdf8;
+      box-shadow: 0 6px 22px rgba(14,165,233,0.45);
+      transform: translateY(-1px);
+    }
+    .btn-login:active { transform: translateY(0); }
+
+    /* ── Divider ── */
+    .auth-divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 1.4rem 0 1.2rem;
+    }
+    .auth-divider-line { flex: 1; height: 1px; background: var(--border); }
+    .auth-divider-text { font-size: 11.5px; color: var(--text-3); white-space: nowrap; }
+
+    /* ── Features list ── */
+    .feature-list {
+      display: flex; flex-direction: column; gap: 8px;
+      margin-bottom: 1.4rem;
+    }
+    .feature-item {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; color: var(--text-2);
+    }
+    .feature-icon {
+      width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 13px;
+    }
+    .feature-icon.blue  { background: var(--blue-dim); }
+    .feature-icon.green { background: var(--green-dim); }
+    .feature-icon.red   { background: var(--red-dim); }
+
+    /* ── Footer ── */
+    .auth-footer {
+      margin-top: 1.4rem; text-align: center;
+      font-size: 13.5px; color: var(--text-2);
+      padding-top: 1.2rem; border-top: 1px solid var(--border);
+    }
+    .auth-footer a { color: var(--blue); text-decoration: none; font-weight: 700; }
+    .auth-footer a:hover { text-decoration: underline; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-outer">
+
+    <!-- Brand -->
+    <div class="auth-brand">
+      <span class="auth-brand-icon">🛡</span>
+      <span class="auth-brand-name">Email<span>Guard</span></span>
+    </div>
+
+    <div class="auth-card">
+
+      <div class="auth-title">Welcome back</div>
+      <div class="auth-subtitle">Sign in to your account to continue.</div>
+
+      <!-- Error -->
+      {% if error %}
+      <div class="auth-error">
+        <span>⚠</span>
+        <span>{{ error }}</span>
+      </div>
+      {% endif %}
+
+      <!-- What you get (only show if no error) -->
+      {% if not error %}
+      <div class="feature-list">
+        <div class="feature-item">
+          <div class="feature-icon blue">⚡</div>
+          ML + rule-based hybrid email analysis
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon green">🔗</div>
+          VirusTotal URL reputation scanning
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon red">📊</div>
+          Real-time threat dashboard
+        </div>
+      </div>
+      <div class="auth-divider">
+        <div class="auth-divider-line"></div>
+        <span class="auth-divider-text">Sign in to access</span>
+        <div class="auth-divider-line"></div>
+      </div>
+      {% endif %}
+
+      <form method="POST">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <div class="input-wrap">
+            <span class="input-icon">👤</span>
+            <input type="text" id="username" name="username" placeholder="Enter your username" required autofocus>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="password" name="password" placeholder="Enter your password" required>
+            <button type="button" class="toggle-pw" onclick="togglePassword()" id="toggleBtn">👁</button>
+          </div>
+        </div>
+
+        <div class="remember-row">
+          <label class="remember-left" for="remember">
+            <input type="checkbox" id="remember" name="remember">
+            Remember me
+          </label>
+        </div>
+
+        <button type="submit" class="btn-login">Sign In →</button>
+      </form>
+
+      <div class="auth-footer">
+        Don't have an account? <a href="{{ url_for('register') }}">Create one here</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function togglePassword() {
+  const input = document.getElementById('password');
+  const btn   = document.getElementById('toggleBtn');
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁';
+  }
+}
+</script>
+</body>
+</html>

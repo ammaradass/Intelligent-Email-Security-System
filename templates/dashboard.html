@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — EmailGuard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<nav class="navbar">
+  <a class="nav-brand" href="/">
+    <span class="nav-logo">🛡</span>
+    <span class="nav-name">Email<span>Guard</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/">Analyze</a></li>
+    <li><a href="/dashboard" class="active">Dashboard</a></li>
+    <li><a href="/history">History</a></li>
+    <li><a href="/evaluation">Evaluation</a></li>
+  </ul>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span style="font-size:13px;color:var(--text-2);">👤 {{ current_user.username }}</span>
+    <a href="{{ url_for('logout') }}" style="font-size:12.5px;font-weight:600;color:var(--text-3);text-decoration:none;padding:5px 12px;border:1px solid var(--border-hi);border-radius:6px;transition:all .2s;" onmouseover="this.style.color='var(--red)';this.style.borderColor='rgba(244,63,94,0.4)'" onmouseout="this.style.color='var(--text-3)';this.style.borderColor='var(--border-hi)'">Logout</a>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <h1>Security Dashboard</h1>
+    <p>Real-time overview of analyzed emails and threat detection performance.</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card c-blue">
+      <div class="stat-label">Total Analyzed</div>
+      <div class="stat-value">{{ stats.total }}</div>
+    </div>
+    <div class="stat-card c-green">
+      <div class="stat-label">Safe</div>
+      <div class="stat-value">{{ stats.safe }}</div>
+    </div>
+    <div class="stat-card c-amber">
+      <div class="stat-label">Suspicious</div>
+      <div class="stat-value">{{ stats.suspicious }}</div>
+    </div>
+    <div class="stat-card c-red">
+      <div class="stat-label">Phishing</div>
+      <div class="stat-value">{{ stats.phishing }}</div>
+    </div>
+    <div class="stat-card c-purple">
+      <div class="stat-label">URLs Detected</div>
+      <div class="stat-value">{{ stats.total_urls }}</div>
+    </div>
+    <div class="stat-card c-blue">
+      <div class="stat-label">Avg Confidence</div>
+      <div class="stat-value">{{ stats.avg_confidence }}%</div>
+    </div>
+  </div>
+
+  {% if stats.total > 0 %}
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="card-title">Classification Breakdown</div>
+      <div class="chart-wrap"><canvas id="donut"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="card-title">Last 30 Emails by Threat Level</div>
+      <div class="chart-wrap"><canvas id="bar"></canvas></div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if metrics %}
+  <div class="card">
+    <div class="card-title">Model Performance</div>
+    <div class="metrics-grid" style="margin-bottom:0;">
+      <div class="metric-card"><div class="metric-name">Accuracy</div><div class="metric-val">{{ (metrics.accuracy*100)|round(1) }}%</div></div>
+      <div class="metric-card"><div class="metric-name">Precision</div><div class="metric-val">{{ (metrics.precision*100)|round(1) }}%</div></div>
+      <div class="metric-card"><div class="metric-name">Recall</div><div class="metric-val">{{ (metrics.recall*100)|round(1) }}%</div></div>
+      <div class="metric-card"><div class="metric-name">F1-Score</div><div class="metric-val">{{ (metrics.f1_score*100)|round(1) }}%</div></div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <div class="card-title">Recent Emails</div>
+    {% if stats.recent_emails %}
+    <div class="recent-list">
+      {% for e in stats.recent_emails %}
+      <div class="recent-item">
+        <div class="ri-info">
+          <div class="ri-from">{{ e[0] }}</div>
+          <div class="ri-subj">{{ e[1] or '(no subject)' }}</div>
+        </div>
+        {% if e[2] == "Safe" %}<span class="badge badge-safe">{{ e[2] }}</span>
+        {% elif e[2] == "Suspicious" %}<span class="badge badge-suspicious">{{ e[2] }}</span>
+        {% else %}<span class="badge badge-phishing">{{ e[2] }}</span>{% endif %}
+        <span class="ri-conf">{{ e[3] }}%</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty" style="padding:2rem;">
+      <p>No emails yet. <a href="/">Analyze your first email →</a></p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+Chart.defaults.color = '#607d93';
+Chart.defaults.font.family = "'Outfit', sans-serif";
+Chart.defaults.font.size = 12;
+
+const safe = {{ stats.safe }};
+const susp = {{ stats.suspicious }};
+const phish = {{ stats.phishing }};
+const rSafe = {{ stats.recent_safe }};
+const rSusp = {{ stats.recent_suspicious }};
+const rPhish = {{ stats.recent_phishing }};
+
+if (safe + susp + phish > 0) {
+  new Chart(document.getElementById('donut'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Safe', 'Suspicious', 'Phishing'],
+      datasets: [{
+        data: [safe, susp, phish],
+        backgroundColor: ['rgba(16,217,138,0.75)', 'rgba(245,158,11,0.75)', 'rgba(244,63,94,0.75)'],
+        borderColor: ['#10d98a', '#f59e0b', '#f43f5e'],
+        borderWidth: 1, hoverOffset: 8,
+      }]
+    },
+    options: {
+      cutout: '68%', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 18, boxWidth: 10, boxHeight: 10, borderRadius: 3, usePointStyle: true } }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('bar'), {
+    type: 'bar',
+    data: {
+      labels: ['Safe', 'Suspicious', 'Phishing'],
+      datasets: [{
+        label: 'Count',
+        data: [rSafe, rSusp, rPhish],
+        backgroundColor: ['rgba(16,217,138,0.15)', 'rgba(245,158,11,0.15)', 'rgba(244,63,94,0.15)'],
+        borderColor: ['#10d98a', '#f59e0b', '#f43f5e'],
+        borderWidth: 1.5, borderRadius: 6, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.03)' } },
+        y: { grid: { color: 'rgba(255,255,255,0.03)' }, beginAtZero: true, ticks: { stepSize: 1 } }
+      }
+    }
+  });
+}
+</script>
+</body>
+</html>

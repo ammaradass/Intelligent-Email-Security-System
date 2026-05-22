@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>History — EmailGuard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script>
+  (function(){
+    const saved = localStorage.getItem("theme") || "dark";
+    document.documentElement.setAttribute("data-theme", saved);
+  })();
+  </script>
+</head>
+<body>
+<nav class="navbar">
+  <a class="nav-brand" href="/">
+    <span class="nav-logo">🛡</span>
+    <span class="nav-name">Email<span>Guard</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/">Analyze</a></li>
+    <li><a href="/dashboard">Dashboard</a></li>
+    <li><a href="/history" class="active">History</a></li>
+    <li><a href="/evaluation">Evaluation</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="nav-user">&#128100; {{ current_user.username }}</span>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+      <div class="theme-toggle-thumb"><span id="themeIcon">&#9790;</span></div>
+    </button>
+    <a href="{{ url_for('logout') }}" class="nav-logout">Logout</a>
+  </div>
+</nav>
+<script>
+function toggleTheme(){
+  const html=document.documentElement;
+  const next=html.getAttribute("data-theme")==="dark"?"light":"dark";
+  html.setAttribute("data-theme",next);
+  localStorage.setItem("theme",next);
+  document.getElementById("themeIcon").textContent=next==="dark"?"\u263E":"\u2600";
+}
+(function(){
+  const t=localStorage.getItem("theme")||"dark";
+  document.documentElement.setAttribute("data-theme",t);
+  const ic=document.getElementById("themeIcon");
+  if(ic) ic.textContent=t==="dark"?"\u263E":"\u2600";
+})();
+</script>
+
+<div class="page">
+  <div class="page-header">
+    <h1>Analysis History</h1>
+    <p>All previously analyzed emails with their detection results.</p>
+  </div>
+
+  {% if records %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Sender</th><th>Receiver</th><th>Subject</th>
+          <th>Classification</th><th>Confidence</th><th>URLs</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in records %}
+        <tr>
+          <td style="color:var(--text-3);font-family:var(--fm);font-size:12px;">{{ row[0] }}</td>
+          <td>{{ row[1] }}</td>
+          <td>{{ row[2] }}</td>
+          <td>{{ row[3] }}</td>
+          <td>
+            {% if row[4] == "Safe" %}<span class="badge badge-safe">{{ row[4] }}</span>
+            {% elif row[4] == "Suspicious" %}<span class="badge badge-suspicious">{{ row[4] }}</span>
+            {% else %}<span class="badge badge-phishing">{{ row[4] }}</span>{% endif %}
+          </td>
+          <td style="font-family:var(--fm);font-size:13px;">{{ row[5] }}%</td>
+          <td style="font-family:var(--fm);font-size:13px;">{{ row[6] }}</td>
+          <td><button class="btn-view" onclick="toggleReasons({{ row[0] }})">Reasons</button></td>
+        </tr>
+        <tr id="rr-{{ row[0] }}" class="reasons-row" style="display:none;">
+          <td colspan="8">
+            <div class="reasons-inner">
+              {% if row[7] and row[7]|length > 0 %}
+                <strong style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);display:block;margin-bottom:8px;">Detection Signals</strong>
+                <ul>
+                {% for r in row[7] %}
+                  {% if '||' in r %}
+                    {% set parts = r.split('||') %}
+                    <li style="display:flex;align-items:center;justify-content:space-between;">
+                      <span>{{ parts[0] }}</span>
+                      <span style="font-family:var(--fm);font-size:11px;font-weight:600;color:var(--red);background:var(--red-dim);border:1px solid rgba(244,63,94,0.25);padding:1px 6px;border-radius:3px;flex-shrink:0;margin-left:8px;">+{{ parts[1] }}</span>
+                    </li>
+                  {% else %}
+                    <li>{{ r }}</li>
+                  {% endif %}
+                {% endfor %}
+                </ul>
+              {% else %}
+                <span class="no-reasons">No detection signals recorded.</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    <span class="empty-icon">📭</span>
+    <p>No emails analyzed yet. <a href="/">Analyze your first email →</a></p>
+  </div>
+  {% endif %}
+</div>
+<script>
+function toggleReasons(id) {
+  const r = document.getElementById('rr-' + id);
+  r.style.display = r.style.display === 'none' ? 'table-row' : 'none';
+}
+</script>
+</body>
+</html>

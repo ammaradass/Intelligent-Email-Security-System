@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Virtual environments
+.venv/
+.venv-1/
+venv/
+env/
+
+# Environment variables (API keys, secrets)
+.env
+
+# IDE
+.vscode/
+
+# Large folders
+data/
+models/
+
+# Database
+*.db
+*.sqlite3
+
+# OS
+Thumbs.db
+.DS_Store

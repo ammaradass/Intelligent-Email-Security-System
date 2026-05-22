@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EmailGuard — Analyze</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<nav class="navbar">
+  <a class="nav-brand" href="/">
+    <span class="nav-logo">🛡</span>
+    <span class="nav-name">Email<span>Guard</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/" class="active">Analyze</a></li>
+    <li><a href="/dashboard">Dashboard</a></li>
+    <li><a href="/history">History</a></li>
+    <li><a href="/evaluation">Evaluation</a></li>
+  </ul>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span style="font-size:13px;color:var(--text-2);">👤 {{ current_user.username }}</span>
+    <a href="{{ url_for('logout') }}" style="font-size:12.5px;font-weight:600;color:var(--text-3);text-decoration:none;padding:5px 12px;border:1px solid var(--border-hi);border-radius:6px;transition:all .2s;" onmouseover="this.style.color='var(--red)';this.style.borderColor='rgba(244,63,94,0.4)'" onmouseout="this.style.color='var(--text-3)';this.style.borderColor='var(--border-hi)'">Logout</a>
+  </div>
+</nav>
+<div class="page page-sm">
+  <div class="page-header">
+    <h1>Analyze Email</h1>
+    <p>XGBoost ML · Rule-based scoring · VirusTotal URL scanning</p>
+  </div>
+  <div class="card">
+    <div class="card-title">Email Details</div>
+    <form action="/analyze" method="POST">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="sender">Sender Email</label>
+          <input type="email" id="sender" name="sender" placeholder="sender@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="receiver">Receiver Email</label>
+          <input type="email" id="receiver" name="receiver" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group form-full">
+          <label for="subject">Subject</label>
+          <input type="text" id="subject" name="subject" placeholder="Email subject line" required>
+        </div>
+        <div class="form-group form-full">
+          <label for="body">Email Body</label>
+          <textarea id="body" name="body" rows="10" placeholder="Paste the full email body here..." required></textarea>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary">⚡ Run Analysis</button>
+    </form>
+  </div>
+</div>
+</body>
+</html>

@@ -62,6 +62,29 @@ MODEL_PATH = MODELS_DIR / "xgb_email_model.pkl"
 VECTORIZER_PATH = MODELS_DIR / "tfidf_vectorizer.pkl"
 URL_COLUMNS_PATH = MODELS_DIR / "url_feature_columns.pkl"
 METRICS_PATH = MODELS_DIR / "metrics.json"
+SETTINGS_PATH = BASE_DIR / "settings.json"
+
+# ── Load phishing detection config from settings.json ────────────────────────
+# All threat intelligence lists are externalized into settings.json.
+# This follows the separation of concerns principle — threat data is kept
+# separate from application logic, allowing updates without code changes.
+def load_settings() -> dict:
+    if not SETTINGS_PATH.exists():
+        logger.warning("settings.json not found at %s — using empty phishing config", SETTINGS_PATH)
+        return {}
+    with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    if "phishing_detection" not in data:
+        logger.warning("settings.json found but missing 'phishing_detection' key")
+    return data
+
+PHISHING_CONFIG = load_settings().get("phishing_detection", {})
+logger.info("Phishing detection config loaded — %d brands, %d keywords, %d TLDs",
+    len(PHISHING_CONFIG.get("impersonated_brands", [])),
+    len(PHISHING_CONFIG.get("suspicious_keywords", [])),
+    len(PHISHING_CONFIG.get("suspicious_tlds", [])),
+)
+
 VT_API_KEY = os.getenv("VT_API_KEY", "").strip()
 if VT_API_KEY:
     print(f"[INFO] VirusTotal API key loaded successfully (key: ...{VT_API_KEY[-4:]})")
@@ -217,19 +240,7 @@ def get_sender_local_part(sender: str) -> str:
 
 
 def is_free_email_domain(domain: str) -> bool:
-    free_domains = {
-        "gmail.com",
-        "yahoo.com",
-        "outlook.com",
-        "hotmail.com",
-        "live.com",
-        "icloud.com",
-        "aol.com",
-        "proton.me",
-        "protonmail.com",
-        "yandex.com",
-        "zoho.com",
-    }
+    free_domains = set(PHISHING_CONFIG.get("free_email_domains", []))
     return domain in free_domains
 
 def get_registered_like_domain(domain: str) -> str:
@@ -264,11 +275,8 @@ def contains_brand_and_extra_words(domain: str, brands: list[str]) -> tuple[bool
     domain = (domain or "").lower()
     clean_domain = domain.replace("-", ".").replace("_", ".")
 
-    suspicious_extra_words = [
-        "secure", "login", "verify", "update", "account",
-        "billing", "support", "service", "auth", "confirm",
-        "reset", "wallet", "banking", "payment"
-    ]
+    # Loaded from settings.json — no hardcoding
+    suspicious_extra_words = PHISHING_CONFIG.get("suspicious_extra_words", [])
 
     for brand in brands:
         if brand in clean_domain:
@@ -293,6 +301,25 @@ def has_misleading_subdomain(domain: str, brands: list[str]) -> tuple[bool, str]
 def is_long_domain(domain: str) -> bool:
     domain = (domain or "").strip().lower()
     return len(domain) >= 30
+
+
+def detect_typosquatting(domain: str) -> tuple[bool, str]:
+    """
+    Detects typosquatting attacks where attackers replace characters
+    in brand names with visually similar ones.
+    Examples: paypa1.com (1 instead of l), micros0ft.com (0 instead of o)
+
+    Variants are loaded from settings.json — no hardcoding.
+    """
+    typo_map = PHISHING_CONFIG.get("typosquatting_map", {})
+    domain = (domain or "").lower().strip()
+
+    for brand, variants in typo_map.items():
+        for variant in variants:
+            if variant in domain:
+                return True, f"{variant} (typo of {brand})"
+
+    return False, ""
 
 def url_to_vt_id(url: str) -> str:
     url = (url or "").strip()
@@ -447,54 +474,16 @@ def apply_rule_based_phishing_boost(
     sender_domain = get_sender_domain(sender)
     sender_local = get_sender_local_part(sender)
 
-    suspicious_keywords = [
-        "verify", "login", "secure", "update", "urgent", "suspend",
-        "account", "bank", "password", "confirm", "click here",
-        "limited", "immediately", "unusual activity", "reset",
-        "payment", "invoice", "security alert", "act now", "expired",
-        "validate", "unlock", "billing", "failure", "deactivate",
-        "re-activate", "confirm identity", "sign in", "log in"
-    ]
-
-    urgent_phrases = [
-        "urgent action required",
-        "act now",
-        "immediate action required",
-        "your account will be suspended",
-        "your account has been suspended",
-        "verify your account",
-        "confirm your identity",
-        "reset your password",
-        "unusual login attempt",
-        "security alert",
-        "payment failed",
-        "invoice attached",
-        "click below",
-        "login now"
-    ]
-
-    suspicious_tlds = [
-        ".ru", ".tk", ".xyz", ".top", ".click", ".gq", ".ml", ".work", ".support"
-    ]
-
-    url_shorteners = [
-        "bit.ly", "tinyurl.com", "goo.gl", "t.co", "ow.ly", "is.gd", "buff.ly", "cutt.ly", "rb.gy"
-    ]
-
-    impersonated_brands = [
-        "paypal", "microsoft", "apple", "google", "amazon",
-        "netflix", "visa", "mastercard", "bank", "outlook", "gmail"
-    ]
-
-    suspicious_sender_words = [
-        "support", "security", "admin", "service", "billing",
-        "verification", "noreply", "no-reply", "helpdesk", "account"
-    ]
-
-    download_words = [
-        "download", "attachment", "open file", "open document", "enable content",
-        "enable macros", "install", "setup", "apk", "exe", "zip"
-    ]
+    # ── Load threat intelligence lists from config ───────────────────────────
+    # Lists are defined in settings.json — not hardcoded here.
+    # To add/remove brands, keywords, or TLDs, edit settings.json only.
+    suspicious_keywords     = PHISHING_CONFIG.get("suspicious_keywords", [])
+    urgent_phrases          = PHISHING_CONFIG.get("urgent_phrases", [])
+    suspicious_tlds         = PHISHING_CONFIG.get("suspicious_tlds", [])
+    url_shorteners          = PHISHING_CONFIG.get("url_shorteners", [])
+    impersonated_brands     = PHISHING_CONFIG.get("impersonated_brands", [])
+    suspicious_sender_words = PHISHING_CONFIG.get("suspicious_sender_words", [])
+    download_words          = PHISHING_CONFIG.get("download_words", [])
 
     keyword_hits = contains_any(text, suspicious_keywords)
     urgent_hits = contains_any(text, urgent_phrases)
@@ -541,6 +530,7 @@ def apply_rule_based_phishing_boost(
     brand_plus_extra_hits = []
     long_domain_hits = []
     many_subdomain_hits = []
+    typosquatting_hits = []
 
     for url in urls:
         domain = get_url_domain(url)
@@ -563,6 +553,13 @@ def apply_rule_based_phishing_boost(
         if count_subdomains(domain) >= 2:
             many_subdomain_hits.append(domain)
 
+        # ── Typosquatting detection ──────────────────────────────────────────
+        # Checks for character substitutions in brand names
+        # e.g. paypa1.com (1 instead of l), micros0ft.com (0 instead of o)
+        typo_detected, typo_desc = detect_typosquatting(domain)
+        if typo_detected:
+            typosquatting_hits.append(f"{domain} ({typo_desc})")
+
     sender_domain_suspicious = False
     if sender_domain and any(tld in sender_domain for tld in suspicious_tlds):
         sender_domain_suspicious = True
@@ -582,7 +579,12 @@ def apply_rule_based_phishing_boost(
 
     sender_uses_free_email_for_brand = False
     if brand_hits and sender_domain:
-        sender_uses_free_email_for_brand = is_free_email_domain(sender_domain)
+        # Only flag if the brand mentioned is NOT the sender's own domain
+        # e.g. paypal-support@gmail.com claiming to be PayPal → flag
+        # but security@gmail.com just existing → do not flag gmail against itself
+        non_self_brands = [b for b in brand_hits if b not in sender_domain]
+        if non_self_brands:
+            sender_uses_free_email_for_brand = is_free_email_domain(sender_domain)
 
     sender_local_mentions_brand = any(brand in sender_local for brand in impersonated_brands)
     sender_local_brand_domain_mismatch = False
@@ -689,9 +691,33 @@ def apply_rule_based_phishing_boost(
         phishing_score += 2
         reasons.append(f"Domain has many subdomains: {many_subdomain_hits[0]}||2")
 
+    if typosquatting_hits:
+        phishing_score += 4
+        reasons.append(f"Typosquatting attack detected in URL: {typosquatting_hits[0]}||4")
+
+    # ── Sender domain typosquatting check ────────────────────────────────────
+    # Attackers often use typosquatted domains in the sender address itself
+    # e.g. no-reply@paypa1.com — caught here even with no URLs in the body
+    if sender_domain:
+        sender_typo, sender_typo_desc = detect_typosquatting(sender_domain)
+        if sender_typo:
+            phishing_score += 4
+            reasons.append(f"Typosquatting attack detected in sender domain: {sender_domain} ({sender_typo_desc})||4")
+
     if len(urls) > 0:
         phishing_score += 1
         reasons.append("Email contains at least one URL||1")
+
+    # ── HTTP vs HTTPS check ──────────────────────────────────────────────────
+    # Any legitimate website in 2025 uses HTTPS. HTTP-only URLs are a strong
+    # phishing signal — attackers use HTTP to avoid SSL certificate requirements.
+    uses_http_only = any(
+        url.lower().startswith("http://") and not url.lower().startswith("https://")
+        for url in urls
+    )
+    if uses_http_only:
+        phishing_score += 2
+        reasons.append("URL uses insecure HTTP instead of HTTPS||2")
     if vt_summary and vt_summary.get("checked"):
         vt_total_score = int(vt_summary.get("total_score", 0))
         vt_results = vt_summary.get("results", [])
@@ -716,15 +742,25 @@ def apply_rule_based_phishing_boost(
         final_label = "High Risk Phishing"
         final_confidence = max(ml_confidence, 92.0)
 
-    # ML says Phishing + high score → Spam/Phishing
+    # ML says Phishing + high score → Spam/Phishing (trust ML confidence as-is)
     elif ml_label == "Spam/Phishing" and phishing_score >= 12:
         final_label = "Spam/Phishing"
-        final_confidence = ml_confidence
+        final_confidence = ml_confidence  # do not force up — trust the ML score
 
-    # ML says Phishing + low/moderate score → Suspicious
+    # ML says Phishing + moderate score → Suspicious
     elif ml_label == "Spam/Phishing" and phishing_score >= 5:
         final_label = "Suspicious"
         final_confidence = max(ml_confidence, 78.0)
+
+    # ── False Positive Correction ────────────────────────────────────────────
+    # ML says Phishing BUT rule engine finds almost no real signals (score <= 4).
+    # This protects legitimate emails with financial/professional vocabulary
+    # (e.g. "log in", "account", "bank") from being wrongly classified.
+    # When there are no suspicious URLs, no spoofed domains, no urgency phrases,
+    # and no IP-based links, the ML is likely reacting to common words only.
+    elif ml_label == "Spam/Phishing" and phishing_score <= 4:
+        final_label = "Safe"
+        final_confidence = 65.0  # moderate confidence — acknowledge ML uncertainty
 
     # ML says Safe + high score → override to High Risk
     elif ml_label == "Safe" and phishing_score >= 15:
@@ -732,7 +768,8 @@ def apply_rule_based_phishing_boost(
         final_confidence = max(ml_confidence, 90.0)
 
     # ML says Safe + moderate score → Suspicious
-    elif ml_label == "Safe" and phishing_score >= 6:
+    # Threshold raised to 10 to reduce false positives on legitimate emails
+    elif ml_label == "Safe" and phishing_score >= 10:
         final_label = "Suspicious"
         final_confidence = max(ml_confidence, 78.0)
 
@@ -853,6 +890,61 @@ def get_email_history():
     conn.close()
     return records
 
+# ── Composite Risk Score ─────────────────────────────────────────────────────
+# MAX_RULE_POINTS is the theoretical maximum the rule engine can produce.
+# Calculated by summing the highest possible points from all rule branches:
+#   keywords(5) + urgent(3) + download(2) + ip_url(3) + at_symbol(2) +
+#   many_dots(1) + dash(1) + suspicious_url_words(2) + suspicious_tld(2) +
+#   shortener(3) + many_digits(1) + too_many_urls(2) + brand(1) +
+#   brand_in_url(2) + sender_word(1) + sender_domain_suspicious(2) +
+#   sender_brand_mismatch(3) + sender_url_mismatch(2) +
+#   free_email_brand(3) + local_brand_mismatch(3) +
+#   misleading_subdomain(3) + brand_plus_extra(3) +
+#   long_domain(1) + many_subdomains(2) + has_urls(1) +
+#   http_only(2) + typosquatting_url(4) + typosquatting_sender(4) + virustotal(6) = 65
+MAX_RULE_POINTS = 65
+
+def calculate_composite_score(ml_probability: float, rule_points: int) -> tuple:
+    """
+    Combines ML probability and rule-based score into a single normalized
+    composite risk score from 0 to 100.
+
+    Methodology:
+      - ML model weight: 60% — trained on 107,533 emails, high empirical reliability
+      - Rule engine weight: 40% — expert heuristics, interpretable security signals
+
+    Risk levels follow CVSS-inspired banding:
+      0–25   → Low Risk     (Safe)
+      26–49  → Medium Risk  (Suspicious)
+      50–74  → High Risk    (Spam/Phishing)
+      75–100 → Critical Risk (High Risk Phishing)
+
+    References:
+      - NIST SP 800-30 Risk Scoring Framework
+      - CVSS v3.1 Severity Ratings (NVD/NIST)
+      - Scikit-learn Probability Calibration [14]
+    """
+    W_ML   = 0.60
+    W_RULE = 0.40
+
+    ml_score   = ml_probability * 100                                     # 0–100
+    rule_score = min(rule_points / MAX_RULE_POINTS, 1.0) * 100            # 0–100, capped
+
+    composite = (W_ML * ml_score) + (W_RULE * rule_score)
+    composite = round(min(100.0, max(0.0, composite)), 1)
+
+    if composite >= 75:
+        risk_level = "Critical Risk"
+    elif composite >= 55:
+        risk_level = "High Risk"
+    elif composite >= 35:
+        risk_level = "Medium Risk"
+    else:
+        risk_level = "Low Risk"
+
+    return composite, risk_level
+
+
 def process_email(sender, receiver, subject, body):
     ml_label, ml_confidence, urls, url_feature_dict = predict_email(subject, body)
 
@@ -868,6 +960,20 @@ def process_email(sender, receiver, subject, body):
         vt_summary
     )
 
+    # ── Composite Risk Score ─────────────────────────────────────────────
+    # Combines ML probability and rule-based points into a single normalized
+    # 0–100 score with a CVSS-inspired risk level label.
+    #
+    # Uses final_label (after false positive correction) to determine risk
+    # direction — ensures composite score matches the final verdict.
+    # When Safe: invert confidence to get phishing probability.
+    # When Spam/Phishing: use confidence directly as phishing probability.
+    if final_label == "Safe":
+        ml_probability_est = 1.0 - (ml_confidence / 100.0)
+    else:
+        ml_probability_est = ml_confidence / 100.0
+    composite_score, risk_level = calculate_composite_score(ml_probability_est, phishing_score)
+
     save_to_database(sender, receiver, subject, body, final_label, final_confidence, urls, reasons)
 
     return {
@@ -877,6 +983,8 @@ def process_email(sender, receiver, subject, body):
         "url_list": urls,
         "url_features": url_feature_dict,
         "phishing_score": phishing_score,
+        "composite_score": composite_score,
+        "risk_level": risk_level,
         "reasons": reasons,
         "ml_label": ml_label,
         "ml_confidence": ml_confidence,

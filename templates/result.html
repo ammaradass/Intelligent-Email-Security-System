@@ -110,10 +110,12 @@ function toggleTheme(){
     <div class="data-row">
       <span class="data-key">ML Prediction</span>
       <span class="data-val">
-        {% if result.ml_label == "Safe" %}
-          <span class="badge badge-safe">{{ result.ml_label }}</span>
+        {% if result.label == "Safe" %}
+          <span class="badge badge-safe">{{ result.label }}</span>
+        {% elif result.label == "Suspicious" %}
+          <span class="badge badge-suspicious">{{ result.label }}</span>
         {% else %}
-          <span class="badge badge-phishing">{{ result.ml_label }}</span>
+          <span class="badge badge-phishing">{{ result.label }}</span>
         {% endif %}
       </span>
     </div>
@@ -124,6 +126,28 @@ function toggleTheme(){
     <div class="data-row">
       <span class="data-key">Phishing Score</span>
       <span class="data-val"><span class="score-highlight">{{ result.phishing_score }}</span></span>
+    </div>
+    <div class="data-row">
+      <span class="data-key">Composite Risk Score</span>
+      <span class="data-val" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span style="font-family:var(--fm);font-size:1.5rem;font-weight:700;
+          {% if result.risk_level == 'Critical Risk' %}color:var(--red);
+          {% elif result.risk_level == 'High Risk' %}color:var(--red);
+          {% elif result.risk_level == 'Medium Risk' %}color:var(--amber);
+          {% else %}color:var(--green);{% endif %}">
+          {{ result.composite_score }} / 100
+        </span>
+        {% if result.risk_level == "Critical Risk" %}
+          <span style="font-size:11px;font-weight:700;letter-spacing:0.08em;padding:3px 10px;border-radius:5px;background:var(--red-dim);color:var(--red);border:1px solid rgba(244,63,94,0.3);">● CRITICAL RISK</span>
+        {% elif result.risk_level == "High Risk" %}
+          <span style="font-size:11px;font-weight:700;letter-spacing:0.08em;padding:3px 10px;border-radius:5px;background:var(--red-dim);color:var(--red);border:1px solid rgba(244,63,94,0.3);">● HIGH RISK</span>
+        {% elif result.risk_level == "Medium Risk" %}
+          <span style="font-size:11px;font-weight:700;letter-spacing:0.08em;padding:3px 10px;border-radius:5px;background:var(--amber-dim);color:var(--amber);border:1px solid rgba(245,158,11,0.3);">● MEDIUM RISK</span>
+        {% else %}
+          <span style="font-size:11px;font-weight:700;letter-spacing:0.08em;padding:3px 10px;border-radius:5px;background:var(--green-dim);color:var(--green);border:1px solid rgba(16,217,138,0.3);">● LOW RISK</span>
+        {% endif %}
+        <span style="font-size:11px;color:var(--text-3);">ML 60% · Rules 40%</span>
+      </span>
     </div>
   </div>
 

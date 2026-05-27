@@ -1,0 +1,82 @@
+{
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+
+    "phishing_detection": {
+        "impersonated_brands": [
+            "paypal", "microsoft", "apple", "google", "amazon",
+            "netflix", "visa", "mastercard", "bank", "outlook"
+        ],
+        "suspicious_keywords": [
+            "verify", "login", "secure", "update", "urgent", "suspend",
+            "account", "bank", "password", "confirm", "click here",
+            "limited", "immediately", "unusual activity", "reset",
+            "payment", "invoice", "security alert", "act now", "expired",
+            "validate", "unlock", "billing", "failure", "deactivate",
+            "re-activate", "confirm identity", "sign in", "log in"
+        ],
+        "urgent_phrases": [
+            "urgent action required",
+            "act now",
+            "immediate action required",
+            "your account will be suspended",
+            "your account has been suspended",
+            "verify your account",
+            "confirm your identity",
+            "reset your password",
+            "unusual login attempt",
+            "security alert",
+            "payment failed",
+            "invoice attached",
+            "click below",
+            "login now"
+        ],
+        "suspicious_tlds": [
+            ".ru", ".tk", ".xyz", ".top", ".click",
+            ".gq", ".ml", ".work", ".support"
+        ],
+        "url_shorteners": [
+            "bit.ly", "tinyurl.com", "goo.gl", "t.co",
+            "ow.ly", "is.gd", "buff.ly", "cutt.ly", "rb.gy"
+        ],
+        "suspicious_sender_words": [
+            "support", "security", "admin", "service", "billing",
+            "verification", "noreply", "no-reply", "helpdesk", "account"
+        ],
+        "download_words": [
+            "download now",
+            "click to download",
+            "download attachment",
+            "open attachment",
+            "enable content",
+            "enable macros",
+            "install now",
+            "run this file",
+            "execute",
+            "setup.exe",
+            ".apk",
+            ".exe",
+            ".zip"
+        ],
+        "free_email_domains": [
+            "gmail.com", "yahoo.com", "outlook.com", "hotmail.com",
+            "live.com", "icloud.com", "aol.com", "proton.me",
+            "protonmail.com", "yandex.com", "zoho.com"
+        ],
+        "suspicious_extra_words": [
+            "secure", "login", "verify", "update", "account",
+            "billing", "support", "service", "auth", "confirm",
+            "reset", "wallet", "banking", "payment"
+        ],
+        "typosquatting_map": {
+            "paypal":    ["paypa1", "paypai", "paypaI", "paypall", "paypel"],
+            "microsoft": ["micros0ft", "micosoft", "microsofft", "mlcrosoft"],
+            "google":    ["g00gle", "goog1e", "googie", "gooogle"],
+            "amazon":    ["arnazon", "amazom", "amaz0n", "amazoon"],
+            "apple":     ["app1e", "appie", "aplle", "appple"],
+            "netflix":   ["netfl1x", "netfiix", "netfllx"],
+            "outlook":   ["0utlook", "outl00k", "outlok"],
+            "visa":      ["v1sa", "viisa", "vvisa"],
+            "bank":      ["baank", "bnak", "bnk"]
+        }
+    }
+}
